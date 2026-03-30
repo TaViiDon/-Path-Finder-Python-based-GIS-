@@ -21,17 +21,17 @@ special_conditions(old_harbour, gutters, broken_cisterns).
 
 %bidirectionl and oneway roads
 %if roads are label one way
-connected(Source, Des, Dis, Time, Type, Status, Ways) :- road(Source, Des, Dis, Time, Type, Status, one_way).
+connected(Source, Des, Dis, Time, Type, Status, ways) :- road(Source, Des, Dis, Time, Type, Status, one_way).
 
 %if roads are labeled as two ways they are bidirectional
-connected(Source, Des, Dis, Time, Type, Status, Ways) :- road(Source, Des, Dis, Time, Type, Status, two_way).
-connected(Source, Des, Dis, Time, Type, Status, Ways) :- road(Des, Source, Dis, Time, Type, Status, two_way).
+connected(Source, Des, Dis, Time, Type, Status, ways) :- road(Source, Des, Dis, Time, Type, Status, two_way).
+connected(Source, Des, Dis, Time, Type, Status, ways) :- road(Des, Source, Dis, Time, Type, Status, two_way).
 
 %search functionality
 
 % Get all neighbors of a node
 neighbors(Node, Neighbors) :-
-    findall(N, edge(Node, N), Neighbors).
+    findall(N, road(Node, N,_,_,_,_,_), Neighbors).
 
 % ============================================================
 %  BFS - Breadth-First Search
@@ -68,6 +68,6 @@ dfs(Start, Goal, Path) :-
 % dfs_helper(+Current, +Goal, +Visited, -Path)
 dfs_helper(Goal, Goal, Visited, Visited).
 dfs_helper(Current, Goal, Visited, Path) :-
-    edge(Current, Next),
+    road(Current, Next,_,_,_,_,_),
     \+ member(Next, Visited),
     dfs_helper(Next, Goal, [Next|Visited], Path).
