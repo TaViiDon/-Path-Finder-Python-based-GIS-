@@ -27,3 +27,47 @@ connected(Source, Des, Dis, Time, Type, Status, Ways) :- road(Source, Des, Dis, 
 connected(Source, Des, Dis, Time, Type, Status, Ways) :- road(Source, Des, Dis, Time, Type, Status, two_way).
 connected(Source, Des, Dis, Time, Type, Status, Ways) :- road(Des, Source, Dis, Time, Type, Status, two_way).
 
+%search functionality
+
+% Get all neighbors of a node
+neighbors(Node, Neighbors) :-
+    findall(N, edge(Node, N), Neighbors).
+
+% ============================================================
+%  BFS - Breadth-First Search
+%  bfs(+Start, +Goal, -Path)
+% ============================================================
+
+bfs(Start, Goal, Path) :-
+    bfs_queue([[Start]], Goal, RevPath),
+    reverse(RevPath, Path).
+
+% bfs_queue(+Queue, +Goal, -Path)
+bfs_queue([[Goal|Rest]|_], Goal, [Goal|Rest]).
+bfs_queue([[Current|Visited]|RestQueue], Goal, Path) :-
+    neighbors(Current, Neighbors),
+    exclude(member_check(Visited), Neighbors, Unvisited),
+    maplist(prepend(Current, Visited), Unvisited, NewPaths),
+    append(RestQueue, NewPaths, UpdatedQueue),
+    bfs_queue(UpdatedQueue, Goal, Path).
+
+member_check(List, Elem) :- member(Elem, List).
+
+prepend(Current, Visited, Neighbor, [Neighbor, Current|Visited]).
+
+
+% ============================================================
+%  DFS - Depth-First Search
+%  dfs(+Start, +Goal, -Path)
+% ============================================================
+
+dfs(Start, Goal, Path) :-
+    dfs_helper(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
+
+% dfs_helper(+Current, +Goal, +Visited, -Path)
+dfs_helper(Goal, Goal, Visited, Visited).
+dfs_helper(Current, Goal, Visited, Path) :-
+    edge(Current, Next),
+    \+ member(Next, Visited),
+    dfs_helper(Next, Goal, [Next|Visited], Path).
