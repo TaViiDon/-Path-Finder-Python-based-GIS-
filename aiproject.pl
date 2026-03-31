@@ -71,3 +71,104 @@ dfs_helper(Current, Goal, Visited, Path) :-
     road(Current, Next,_,_,_,_,_),
     \+ member(Next, Visited),
     dfs_helper(Next, Goal, [Next|Visited], Path).
+
+% ============================================================
+%  Dijkstra Shortest Path Algorithm 
+% ============================================================
+
+%  dijkstra(+Start, +Goal, -Path, -TotalCost)
+% ============================================================
+%finding the path with the shortest distance
+dijkstra_dis(Start, Goal, Path, Cost) :-
+    % Priority queue entry: pq(Cost, CurrentNode, PathSoFar)
+    dijkstra_loop([pq(0, Start, [Start])], Goal, [], RevPath, Cost),
+    reverse(RevPath, Path).
+
+%finding path with shortest time
+dijkstra_time(Start, Goal, Path, Cost) :-
+    % Priority queue entry: pq(Cost, CurrentNode, PathSoFar)
+    dijkstra_loop2([pq(0, Start, [Start])], Goal, [], RevPath, Cost),
+    reverse(RevPath, Path).
+
+
+% ============================================================
+%  CORE LOOP
+%  dijkstra_loop(+PriorityQueue, +Goal, +Visited, -Path, -Cost)
+% ============================================================
+
+% Base case: reached the goal node
+dijkstra_loop([pq(Cost, Goal, Path)|_], Goal, _, Path, Cost) :- !.
+
+% Recursive case: expand the lowest-cost node
+dijkstra_loop([pq(Cost, Node, Path)|RestQueue], Goal, Visited, FinalPath, FinalCost) :-
+    ( member(Node, Visited)
+    ->  % Node already settled — skip it
+        dijkstra_loop(RestQueue, Goal, Visited, FinalPath, FinalCost)
+    ;
+        % Mark node as settled
+        NewVisited = [Node|Visited],
+        % Find all unvisited neighbors and compute tentative costs
+        findall(
+            pq(NewCost, Neighbor, [Neighbor|Path]),
+            (
+                connected(Node, Neighbor, Weight,_,_,_,_),
+                \+ member(Neighbor, NewVisited),
+                NewCost is Cost + Weight
+            ),
+            NewEntries
+        ),
+        % Merge new entries into priority queue and re-sort
+        append(RestQueue, NewEntries, MergedQueue),
+        sort(MergedQueue, SortedQueue),          % sort by pq/3 first arg (cost)
+        dijkstra_loop(SortedQueue, Goal, NewVisited, FinalPath, FinalCost)
+    ).
+
+dijkstra_loop2([pq(Cost, Node, Path)|RestQueue], Goal, Visited, FinalPath, FinalCost) :-
+    ( member(Node, Visited)
+    ->  % Node already settled — skip it
+        dijkstra_loop(RestQueue, Goal, Visited, FinalPath, FinalCost)
+    ;
+        % Mark node as settled
+        NewVisited = [Node|Visited],
+        % Find all unvisited neighbors and compute tentative costs
+        findall(
+            pq(NewCost, Neighbor, [Neighbor|Path]),
+            (
+                connected(Node, Neighbor, _,Weight,_,_,_),
+                \+ member(Neighbor, NewVisited),
+                NewCost is Cost + Weight
+            ),
+            NewEntries
+        ),
+        % Merge new entries into priority queue and re-sort
+        append(RestQueue, NewEntries, MergedQueue),
+        sort(MergedQueue, SortedQueue),          % sort by pq/3 first arg (cost)
+        dijkstra_loop(SortedQueue, Goal, NewVisited, FinalPath, FinalCost)
+    ).
+
+
+
+% ============================================================
+%  FIND ALL SHORTEST PATHS FROM A SOURCE
+%  all_shortest(+Start, -Results)
+%  Results = list of node-cost-path triples
+% ============================================================
+
+all_shortest(Start, Results) :-
+    findall(node(Goal, Cost, Path),
+        (
+            connectd(Start, _, _, _,_, _,_),           % ensure graph is non-empty
+            dijkstra(Start, Goal, Path, Cost),
+            Goal \= Start
+        ),
+        Results).
+
+
+
+
+
+
+
+
+
+ 
