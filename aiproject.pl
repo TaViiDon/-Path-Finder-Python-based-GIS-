@@ -12,7 +12,7 @@ road(spring_villiage,dover, 12, 15,unpaved, open, two_way).
 road(dover,content, 7, 9,unpaved, open, two_way).
 road(content,bamboo, 5, 6, paved, open, two_way).
 road(bamboo,byles, 10,15 , paved, open, two_way).
-road(old_harbour,calbeck_junction, 7, 10, paved, open, two_way).
+road(old_harbour,calbeck_junction, 7, 10, paved, close, two_way).
 
 %special conditions
 %special_conditions(source, destination, condition).
@@ -27,11 +27,15 @@ connected(Source, Des, Dis, Time, Type, Status, ways) :- road(Source, Des, Dis, 
 connected(Source, Des, Dis, Time, Type, Status, ways) :- road(Source, Des, Dis, Time, Type, Status, two_way).
 connected(Source, Des, Dis, Time, Type, Status, ways) :- road(Des, Source, Dis, Time, Type, Status, two_way).
 
+% Check if condition exists in either direction
+has_condition(A, B, Condition) :- special_conditions(A, B, Condition).
+has_condition(A, B, Condition) :- special_conditions(B, A, Condition).
+
 %search functionality
 
 % Get all neighbors of a node
 neighbors(Node, Neighbors) :-
-    findall(N, road(Node, N,_,_,_,_,_), Neighbors).
+    findall(N, connected(Node, N,_,_,_,_,_), Neighbors).
 
 % ============================================================
 %  BFS - Breadth-First Search
@@ -55,6 +59,41 @@ member_check(List, Elem) :- member(Elem, List).
 
 prepend(Current, Visited, Neighbor, [Neighbor, Current|Visited]).
 
+%avoid unpaved roads
+% Get all neighbors of a node
+paved_neighbors(Node, Paved_Neighbors) :-
+    findall(N, connected(Node, N,_,_,paved,_,_), Paved_Neighbors).
+
+paved_roads_bfs(Start, Goal, Path) :-
+    bfs_queue_paved([[Start]], Goal, RevPath),
+    reverse(RevPath, Path).
+
+bfs_queue_paved([[Goal|Rest]|_], Goal, [Goal|Rest]).
+bfs_queue_paved([[Current|Visited]|RestQueue], Goal, Path) :-
+    paved_neighbors(Current, Paved_Neighbors),
+    exclude(member_check(Visited), Paved_Neighbors, Unvisited),
+    maplist(prepend(Current, Visited), Unvisited, NewPaths),
+    append(RestQueue, NewPaths, UpdatedQueue),
+    bfs_queue_paved(UpdatedQueue, Goal, Path).
+
+
+%avoid closed roads
+% Get all neighbors of a node
+open_neighbors(Node, Open_Neighbors) :-
+    findall(N, connected(Node, N,_,_,_,open,_), Open_Neighbors).
+
+open_roads_bfs(Start, Goal, Path) :-
+    bfs_queue_open([[Start]], Goal, RevPath),
+    reverse(RevPath, Path).
+
+bfs_queue_open([[Goal|Rest]|_], Goal, [Goal|Rest]).
+bfs_queue_open([[Current|Visited]|RestQueue], Goal, Path) :-
+    open_neighbors(Current, Open_Neighbors),
+    exclude(member_check(Visited), Open_Neighbors, Unvisited),
+    maplist(prepend(Current, Visited), Unvisited, NewPaths),
+    append(RestQueue, NewPaths, UpdatedQueue),
+    bfs_queue_open(UpdatedQueue, Goal, Path).
+
 
 % ============================================================
 %  DFS - Depth-First Search
@@ -68,12 +107,12 @@ dfs(Start, Goal, Path) :-
 % dfs_helper(+Current, +Goal, +Visited, -Path)
 dfs_helper(Goal, Goal, Visited, Visited).
 dfs_helper(Current, Goal, Visited, Path) :-
-    road(Current, Next,_,_,_,_,_),
+    road(Current, Next,_,_,_,open,_),
     \+ member(Next, Visited),
     dfs_helper(Next, Goal, [Next|Visited], Path).
 
 % ============================================================
-%  Dijkstra Shortest Path Algorithm 
+%  Dijkstra's Shortest Path Algorithm 
 % ============================================================
 
 %  dijkstra(+Start, +Goal, -Path, -TotalCost)
@@ -111,7 +150,7 @@ dijkstra_loop([pq(Cost, Node, Path)|RestQueue], Goal, Visited, FinalPath, FinalC
         findall(
             pq(NewCost, Neighbor, [Neighbor|Path]),
             (
-                connected(Node, Neighbor, Weight,_,_,_,_),
+                connected(Node, Neighbor, Weight,_,_,open,_),
                 \+ member(Neighbor, NewVisited),
                 NewCost is Cost + Weight
             ),
@@ -123,45 +162,38 @@ dijkstra_loop([pq(Cost, Node, Path)|RestQueue], Goal, Visited, FinalPath, FinalC
         dijkstra_loop(SortedQueue, Goal, NewVisited, FinalPath, FinalCost)
     ).
 
+dijkstra_loop2([pq(Cost, Goal, Path)|_], Goal, _, Path, Cost) :- !.
+
 dijkstra_loop2([pq(Cost, Node, Path)|RestQueue], Goal, Visited, FinalPath, FinalCost) :-
     ( member(Node, Visited)
     ->  % Node already settled — skip it
-        dijkstra_loop(RestQueue, Goal, Visited, FinalPath, FinalCost)
+        dijkstra_loop2(RestQueue, Goal, Visited, FinalPath, FinalCost)
     ;
         % Mark node as settled
         NewVisited = [Node|Visited],
         % Find all unvisited neighbors and compute tentative costs
         findall(
-            pq(NewCost, Neighbor, [Neighbor|Path]),
-            (
-                connected(Node, Neighbor, _,Weight,_,_,_),
-                \+ member(Neighbor, NewVisited),
-                NewCost is Cost + Weight
-            ),
-            NewEntries
-        ),
+    pq(NewCost, Neighbor, [Neighbor|Path]),
+    (
+        connected(Node, Neighbor, _, Weight, _, open, _),
+        \+ member(Neighbor, Path),
+        (
+            (has_condition(Node, Neighbor, deep_potholes) ;
+             has_condition(Node, Neighbor, broken_cisterns))
+        ->
+            NewCost is Cost + Weight + 5
+        ;
+            NewCost is Cost + Weight %if the roads have broken cisterns or deep potholes the time to traverse increases by 5
+        )
+    ),
+    NewEntries
+),
         % Merge new entries into priority queue and re-sort
         append(RestQueue, NewEntries, MergedQueue),
         sort(MergedQueue, SortedQueue),          % sort by pq/3 first arg (cost)
-        dijkstra_loop(SortedQueue, Goal, NewVisited, FinalPath, FinalCost)
+        dijkstra_loop2(SortedQueue, Goal, NewVisited, FinalPath, FinalCost)
     ).
 
-
-
-% ============================================================
-%  FIND ALL SHORTEST PATHS FROM A SOURCE
-%  all_shortest(+Start, -Results)
-%  Results = list of node-cost-path triples
-% ============================================================
-
-all_shortest(Start, Results) :-
-    findall(node(Goal, Cost, Path),
-        (
-            connectd(Start, _, _, _,_, _,_),           % ensure graph is non-empty
-            dijkstra(Start, Goal, Path, Cost),
-            Goal \= Start
-        ),
-        Results).
 
 
 
