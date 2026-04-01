@@ -12,7 +12,7 @@ road(spring_villiage,dover, 12, 15,unpaved, open, two_way).
 road(dover,content, 7, 9,unpaved, open, two_way).
 road(content,bamboo, 5, 6, paved, open, two_way).
 road(bamboo,byles, 10,15 , paved, open, two_way).
-road(old_harbour,calbeck_junction, 7, 10, paved, close, two_way).
+road(old_harbour,calbeck_junction, 7, 10, paved, open, two_way).
 
 %special conditions
 %special_conditions(source, destination, condition).
@@ -107,9 +107,34 @@ dfs(Start, Goal, Path) :-
 % dfs_helper(+Current, +Goal, +Visited, -Path)
 dfs_helper(Goal, Goal, Visited, Visited).
 dfs_helper(Current, Goal, Visited, Path) :-
-    road(Current, Next,_,_,_,open,_),
+    connected(Current, Next,_,_,_,open,_),
     \+ member(Next, Visited),
     dfs_helper(Next, Goal, [Next|Visited], Path).
+
+%avoid roads with broken cisterns
+dfs_noBrokencisterns(Start, Goal, Path) :-
+    dfs_helper(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
+
+dfs_nocis(Goal, Goal, Visited, Visited).
+dfs_nocis(Current, Goal, Visited, Path) :-
+    connected(Current, Next, _, _, _, open, _),
+    \+ has_condition(Current, Next, broken_cisterns),  % skip edges WITH broken_cisterns
+    \+ member(Next, Visited),
+    dfs_nocis(Next, Goal, [Next|Visited], Path).
+
+%avoid roads with broken cisterns
+dfs_nopotholes(Start, Goal, Path) :-
+    dfs_helper(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
+
+dfs_pot(Goal, Goal, Visited, Visited).
+dfs_pot(Current, Goal, Visited, Path) :-
+    connected(Current, Next, _, _, _, open, _),
+    \+ has_condition(Current, Next, deep_potholes),  % skip edges WITH broken_cisterns
+    \+ member(Next, Visited),
+    dfs_pot(Next, Goal, [Next|Visited], Path).
+
 
 % ============================================================
 %  Dijkstra's Shortest Path Algorithm 
