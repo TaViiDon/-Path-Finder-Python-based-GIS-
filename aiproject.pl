@@ -20,7 +20,6 @@ road(montego_bay,falmouth, 32, 45, paved, open, two_way).
 %special_conditions(source, destination, condition).
 special_conditions(old_harbour, gutters, deep_potholes).
 special_conditions(old_harbour, gutters, broken_cisterns).
-special_conditions(junction, broadgate_(.(st, _8308)), landslide).
 
 
 %road(source, destination, distance, time, type, status, ways)
