@@ -7,7 +7,6 @@
 %road(source, destination, distance, time, type, status, ways)
 road(old_harbour,gutters, 5, 9, paved, open, two_way).
 road(gutters,spring_villiage, 10, 15, paved, open, two_way).
-road(gutters,bushy_park, 5, 5, unpaved, open, two_way).
 road(spring_villiage,dover, 12, 15, unpaved, open, two_way).
 road(dover,content, 7, 9, unpaved, open, two_way).
 road(content,bamboo, 5, 6, paved, open, two_way).
@@ -15,11 +14,14 @@ road(bamboo,byles, 10, 15, paved, open, two_way).
 road(old_harbour,calbeck_junction, 7, 10, paved, open, two_way).
 road(calbeck_junction,bushy_park, 8, 12, unpaved, open, two_way).
 road(montego_bay,falmouth, 32, 45, paved, open, two_way).
+road(gutters,bushy_park, 5, 5, unpaved, open, two_way).
 
 %special conditions
 %special_conditions(source, destination, condition).
 special_conditions(old_harbour, gutters, deep_potholes).
 special_conditions(old_harbour, gutters, broken_cisterns).
+special_conditions(gutters, bushy_park, flooded).
+special_conditions(gutters, spring_villiage, landslide).
 
 
 %road(source, destination, distance, time, type, status, ways)
@@ -27,11 +29,6 @@ special_conditions(old_harbour, gutters, broken_cisterns).
 %special conditions
 %special_conditions(source, destination, condition).
 
-
-%road(source, destination, distance, time, type, status, ways)
-
-%special conditions
-%special_conditions(source, destination, condition).
 
 %bidirectionl and oneway roads
 %if roads are label one way
@@ -125,6 +122,31 @@ dfs_helper(Current, Goal, Visited, Path) :-
     \+ member(Next, Visited),
     dfs_helper(Next, Goal, [Next|Visited], Path).
 
+%avoid roads with landslides
+dfs_noLandslides(Start, Goal, Path) :-
+    dfs_noland(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
+
+dfs_noland(Goal, Goal, Visited, Visited).
+dfs_noland(Current, Goal, Visited, Path) :-
+    connected(Current, Next, _, _, _, open, _),
+    \+ has_condition(Current, Next, landslide),  % skip edges WITH broken_cisterns
+    \+ member(Next, Visited),
+    dfs_noland(Next, Goal, [Next|Visited], Path).
+
+
+%avoid roads with floods
+dfs_noFloods(Start, Goal, Path) :-
+    dfs_noF(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
+
+dfs_noF(Goal, Goal, Visited, Visited).
+dfs_noF(Current, Goal, Visited, Path) :-
+    connected(Current, Next, _, _, _, open, _),
+    \+ has_condition(Current, Next, flooded),  % skip edges WITH floods
+    \+ member(Next, Visited),
+    dfs_noF(Next, Goal, [Next|Visited], Path). 
+
 %avoid roads with broken cisterns
 dfs_noBrokencisterns(Start, Goal, Path) :-
     dfs_nocis(Start, Goal, [Start], RevPath),
@@ -149,23 +171,6 @@ dfs_pot(Current, Goal, Visited, Path) :-
     \+ member(Next, Visited),
     dfs_pot(Next, Goal, [Next|Visited], Path).
 
-
-% ============================================================
-%  Bug-fixed DFS entry points
-%  (The originals dfs_noBrokencisterns / dfs_nopotholes both
-%   called dfs_helper which has NO filtering. These corrected
-%   versions call the proper filtered inner predicates.)
-% ============================================================
-
-% Avoid roads flagged with broken_cisterns
-dfs_no_cisterns(Start, Goal, Path) :-
-    dfs_nocis(Start, Goal, [Start], RevPath),
-    reverse(RevPath, Path).
-
-% Avoid roads flagged with deep_potholes
-dfs_no_potholes(Start, Goal, Path) :-
-    dfs_pot(Start, Goal, [Start], RevPath),
-    reverse(RevPath, Path).
 
 % ============================================================
 %  Dijkstra's Shortest Path Algorithm 
