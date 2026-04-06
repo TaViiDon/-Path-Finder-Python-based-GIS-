@@ -8,16 +8,31 @@
 road(old_harbour,gutters, 5, 9, paved, open, two_way).
 road(gutters,spring_villiage, 10, 15, paved, open, two_way).
 road(gutters,bushy_park, 5, 5, unpaved, open, two_way).
-road(spring_villiage,dover, 12, 15,unpaved, open, two_way).
-road(dover,content, 7, 9,unpaved, open, two_way).
+road(spring_villiage,dover, 12, 15, unpaved, open, two_way).
+road(dover,content, 7, 9, unpaved, open, two_way).
 road(content,bamboo, 5, 6, paved, open, two_way).
-road(bamboo,byles, 10,15 , paved, open, two_way).
+road(bamboo,byles, 10, 15, paved, open, two_way).
 road(old_harbour,calbeck_junction, 7, 10, paved, open, two_way).
+road(calbeck_junction,bushy_park, 8, 12, unpaved, open, two_way).
+road(montego_bay,falmouth, 32, 45, paved, open, two_way).
 
 %special conditions
 %special_conditions(source, destination, condition).
 special_conditions(old_harbour, gutters, deep_potholes).
 special_conditions(old_harbour, gutters, broken_cisterns).
+special_conditions(junction, broadgate_(.(st, _8308)), landslide).
+
+
+%road(source, destination, distance, time, type, status, ways)
+
+%special conditions
+%special_conditions(source, destination, condition).
+
+
+%road(source, destination, distance, time, type, status, ways)
+
+%special conditions
+%special_conditions(source, destination, condition).
 
 %bidirectionl and oneway roads
 %if roads are label one way
@@ -135,6 +150,23 @@ dfs_pot(Current, Goal, Visited, Path) :-
     \+ member(Next, Visited),
     dfs_pot(Next, Goal, [Next|Visited], Path).
 
+
+% ============================================================
+%  Bug-fixed DFS entry points
+%  (The originals dfs_noBrokencisterns / dfs_nopotholes both
+%   called dfs_helper which has NO filtering. These corrected
+%   versions call the proper filtered inner predicates.)
+% ============================================================
+
+% Avoid roads flagged with broken_cisterns
+dfs_no_cisterns(Start, Goal, Path) :-
+    dfs_nocis(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
+
+% Avoid roads flagged with deep_potholes
+dfs_no_potholes(Start, Goal, Path) :-
+    dfs_pot(Start, Goal, [Start], RevPath),
+    reverse(RevPath, Path).
 
 % ============================================================
 %  Dijkstra's Shortest Path Algorithm 
