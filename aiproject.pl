@@ -127,7 +127,7 @@ dfs_helper(Current, Goal, Visited, Path) :-
 
 %avoid roads with broken cisterns
 dfs_noBrokencisterns(Start, Goal, Path) :-
-    dfs_helper(Start, Goal, [Start], RevPath),
+    dfs_nocis(Start, Goal, [Start], RevPath),
     reverse(RevPath, Path).
 
 dfs_nocis(Goal, Goal, Visited, Visited).
@@ -139,7 +139,7 @@ dfs_nocis(Current, Goal, Visited, Path) :-
 
 %avoid roads with broken cisterns
 dfs_nopotholes(Start, Goal, Path) :-
-    dfs_helper(Start, Goal, [Start], RevPath),
+    dfs_pot(Start, Goal, [Start], RevPath),
     reverse(RevPath, Path).
 
 dfs_pot(Goal, Goal, Visited, Visited).
