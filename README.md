@@ -106,10 +106,21 @@ The application window will open showing the Jamaica road network map.
 5. Route options appear as cards on the right — click a card to switch between routes
 
 ### Map Icons
-Hover over any icon on the map to see what it means:
-- Yellow triangle with `!` — Deep Potholes
-- Blue oval with `~` — Broken Cistern
-- Orange oval with `!` — Other road condition
+Hover over any icon on the map to see its title and description.
+
+| Icon | Shape | Color | Meaning |
+|------|-------|-------|---------|
+| `▲ !` | Triangle (pointing up) | Yellow | **Deep Potholes** — Road surface severely damaged. +5 min delay. |
+| `● ~` | Circle | Blue | **Broken Cisterns** — Water infrastructure hazard on this segment. |
+| `▼ !` | Triangle (pointing down) | Brown | **Landslide** — Road partially blocked by debris. Use caution. |
+| `● ~` | Circle | Teal | **Flooded Road** — Water on road surface. May be impassable. |
+| `● !` | Circle | Orange | Other road condition. |
+
+### Destination Marker
+When a route is found, the destination node shows:
+- A **green glow ring** around the node
+- A **flagpole with a green/white checkered flag** above the node
+- A **FINISH** label below the node
 
 ### Admin Panel
 1. Click the **Admin** button (top right)
