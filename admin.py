@@ -3,22 +3,13 @@ admin.py
 --------
 Administrator panel for the PathFinder system.
 
-Opens as a separate Toplevel (modal-style) window that lets a privileged
+Opens as a separate Toplevel window that lets a privileged
 user manage the road network without restarting the application:
 
     Tab 1 – View Roads     : scrollable table of all road/7 facts + conditions
     Tab 2 – Add Road       : form to assert a new road/7 fact
     Tab 3 – Update Status  : change a road's open/closed status
     Tab 4 – Conditions     : add or remove special_conditions/3 facts
-
-Every change is asserted/retracted from the live Prolog engine immediately.
-The "Save to File" button in the header calls bridge.save_kb() to persist
-the current state back to aiproject.pl on disk.
-
-The optional `on_close` callback is invoked after any change so that the
-map in interface.py can refresh without restarting.
-
-Author: Group  |  UTech Jamaica – AI / Expert Systems  |  2026
 """
 
 import tkinter as tk
@@ -27,9 +18,7 @@ from tkinter import ttk, messagebox
 from utils import display_name, format_condition
 
 
-# =============================================================================
 # Colour palette  (matches the dark Waze-style theme in interface.py)
-# =============================================================================
 C = {
     "bg":       "#1a1f2e",   # window background
     "panel":    "#252d3d",   # card / tab surface
@@ -67,9 +56,7 @@ class AdminPanel:
         self.kb_path  = kb_path
         self.on_close = on_close    # Callback → refreshes the main map
 
-        # ------------------------------------------------------------------
         # Top-level window
-        # ------------------------------------------------------------------
         self.win = tk.Toplevel(parent)
         self.win.title("PathFinder – Administrator Panel")
         self.win.geometry("880x640")
@@ -80,10 +67,7 @@ class AdminPanel:
         self._build_ui()
         self._refresh_view()   # Populate the View Roads tab immediately
 
-    # =========================================================================
     # UI CONSTRUCTION
-    # =========================================================================
-
     def _build_ui(self):
         """Assemble header + tabbed notebook."""
 
@@ -128,10 +112,7 @@ class AdminPanel:
         self._build_tab_status()
         self._build_tab_conditions()
 
-    # -------------------------------------------------------------------------
     # Tab 1 – View all roads
-    # -------------------------------------------------------------------------
-
     def _build_tab_view(self):
         f = tk.Frame(self.nb, bg=C["bg"])
         self.nb.add(f, text="  View Roads  ")
@@ -194,10 +175,7 @@ class AdminPanel:
             command=self._refresh_view,
         ).pack(pady=(0, 8))
 
-    # -------------------------------------------------------------------------
     # Tab 2 – Add a new road
-    # -------------------------------------------------------------------------
-
     def _build_tab_add(self):
         f = tk.Frame(self.nb, bg=C["bg"])
         self.nb.add(f, text="  Add Road  ")
@@ -254,10 +232,7 @@ class AdminPanel:
         self._add_msg = tk.Label(f, text="", bg=C["bg"], font=("Helvetica", 10))
         self._add_msg.pack()
 
-    # -------------------------------------------------------------------------
     # Tab 3 – Update road status (open / closed)
-    # -------------------------------------------------------------------------
-
     def _build_tab_status(self):
         f = tk.Frame(self.nb, bg=C["bg"])
         self.nb.add(f, text="  Update Status  ")
@@ -308,10 +283,7 @@ class AdminPanel:
         self._upd_msg = tk.Label(f, text="", bg=C["bg"], font=("Helvetica", 10))
         self._upd_msg.pack()
 
-    # -------------------------------------------------------------------------
     # Tab 4 – Manage special conditions
-    # -------------------------------------------------------------------------
-
     def _build_tab_conditions(self):
         f = tk.Frame(self.nb, bg=C["bg"])
         self.nb.add(f, text="  Conditions  ")
@@ -374,10 +346,7 @@ class AdminPanel:
         self._cond_msg = tk.Label(f, text="", bg=C["bg"], font=("Helvetica", 10))
         self._cond_msg.pack()
 
-    # =========================================================================
     # DATA REFRESH  –  populates Tab 1 with live Prolog data
-    # =========================================================================
-
     def _refresh_view(self):
         """Reload all roads and conditions from the Prolog engine."""
 
@@ -420,9 +389,7 @@ class AdminPanel:
             self.cond_text.insert("end", "  No special conditions recorded.\n")
         self.cond_text.configure(state="disabled")
 
-    # =========================================================================
-    # ACTIONS
-    # =========================================================================
+    # ACTIONS –  called by the buttons in Tabs 2-4 to modify the Prolog KB
 
     def _do_add_road(self):
         """Validate the Add Road form and assert the new fact into Prolog."""
@@ -532,10 +499,7 @@ class AdminPanel:
         else:
             messagebox.showerror("Error", "Save failed – check the console for details.")
 
-    # =========================================================================
     # HELPERS
-    # =========================================================================
-
     def _msg(self, label: tk.Label, text: str, kind: str):
         """Update a status label with colour-coded feedback text."""
         label.configure(text=text, fg=C[kind])

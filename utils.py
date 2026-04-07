@@ -10,13 +10,9 @@ Covers:
   - Python-side travel-time calculation (mirrors the Prolog dijkstra_time logic)
   - Algorithm label → bridge method mapping used by the UI
 
-Author: Group  |  UTech Jamaica – AI / Expert Systems  |  2026
 """
 
-# =============================================================================
 # NODE NAME FORMATTING
-# =============================================================================
-
 def display_name(node_id: str) -> str:
     """
     Convert a Prolog atom node name to a human-readable display string.
@@ -70,10 +66,8 @@ def validate_positive_int(value: str) -> bool:
         return False
 
 
-# =============================================================================
-# DISPLAY FORMATTING
-# =============================================================================
 
+# DISPLAY FORMATTING
 def format_path(path: list) -> str:
     """
     Join a list of node atom strings into a human-readable route string.
@@ -122,9 +116,7 @@ def format_condition(condition_id: str) -> str:
     return condition_id.replace("_", " ").title()
 
 
-# =============================================================================
 # TRAVEL TIME CALCULATION  (Python-side mirror of Prolog dijkstra_time logic)
-# =============================================================================
 
 # Extra minutes added for each affected segment — mirrors the Prolog rule:
 #   (has_condition(deep_potholes) ; has_condition(broken_cisterns)) → +5
@@ -203,9 +195,7 @@ def _find_road_segment(src: str, dst: str, roads: list):
     return None
 
 
-# =============================================================================
 # ALGORITHM LABEL → BRIDGE METHOD MAPPING
-# =============================================================================
 
 # Maps the UI dropdown label to:
 #   (bridge method suffix,  True if query also returns a cost value)

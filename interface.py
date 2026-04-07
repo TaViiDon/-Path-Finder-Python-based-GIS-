@@ -3,36 +3,6 @@ interface.py
 ------------
 Main Waze-inspired GUI for the PathFinder Rural Roads Network system.
 
-Design goals (mirroring the Waze screenshots provided):
-  ┌────────────────────────────────────────────────────────────┐
-  │  HEADER  –  title + "Road Network Active" badge + Admin    │
-  ├────────────────────────────────────────────────────────────┤
-  │                                                            │
-  │   MAP CANVAS                                               │
-  │     • Dark background with subtle grid (Waze tile style)   │
-  │     • Paved roads  = blue lines                            │
-  │     • Unpaved roads = orange-brown lines                   │
-  │     • Closed roads  = red lines                            │
-  │     • Highlighted route = bright cyan with dashed centre   │
-  │     • Node circles (white) with name labels                │
-  │     • ▲ yellow triangle icons for deep_potholes            │
-  │     • ● blue circle icons for broken_cisterns              │
-  │     • Tooltip popup on icon hover (Waze hazard pop-up)     │
-  │     • 🏁 destination flag on found route                   │
-  │                                                            │
-  ├────────────────────────────────────────────────────────────┤
-  │  LEGEND  –  road type / condition colour key               │
-  ├────────────────────────────────────────────────────────────┤
-  │  SEARCH PANEL                                              │
-  │    [From ▼]  [To ▼]  [Criteria ▼]  [🔍 Find Route] [✕]    │
-  ├────────────────────────────────────────────────────────────┤
-  │  ROUTE CARDS  (Waze-style multiple route options)          │
-  │    Card 1: primary algorithm result (highlighted on map)   │
-  │    Card 2: Dijkstra distance alternative (if different)    │
-  │    Card 3: Dijkstra time alternative   (if different)      │
-  └────────────────────────────────────────────────────────────┘
-
-Author: Group  |  UTech Jamaica – AI / Expert Systems  |  2026
 """
 
 import tkinter as tk
@@ -42,7 +12,6 @@ import math
 import os
 from io import BytesIO
 
-# ── Optional packages for Google Maps tile background ─────────────────────────
 # Install with:  pip install requests Pillow python-dotenv
 try:
     from urllib.request import urlopen
@@ -74,9 +43,7 @@ from utils import (
 from admin import AdminPanel
 
 
-# =============================================================================
 # Colour palette  (Waze dark-mode inspired)
-# =============================================================================
 C = {
     "bg":         "#1a1f2e",   # window / panel background
     "map_bg":     "#16213e",   # canvas background (darker navy)
@@ -92,8 +59,10 @@ C = {
     "node_sel":   "#4a9eff",   # selected-source node fill (Waze blue dot)
     "node_out":   "#4a9eff",
     "node_text":  "#1a1f2e",
-    "pot_icon":   "#f0c040",   # yellow warning triangle
-    "cis_icon":   "#5eb8ff",   # blue circle
+    "pot_icon":   "#f0c040",   # yellow warning triangle  – deep potholes
+    "cis_icon":   "#5eb8ff",   # blue circle             – broken cisterns
+    "land_icon":  "#c97c30",   # earthy brown            – landslide
+    "flood_icon": "#1a9eba",   # teal                    – flooded road
     "text":       "#e8eaf0",
     "sub":        "#8b9cb5",
     "accent":     "#4a9eff",
@@ -107,10 +76,25 @@ C = {
     "btn_clr":    "#546e7a",
 }
 
-# =============================================================================
+# Tooltip text and background colour for each road condition.
+# Format:  condition_key -> (title_line, detail_line, bg_hex)
+CONDITION_TIPS = {
+    "deep_potholes":   ("Deep Potholes",
+                        "Road surface severely damaged. +5 min delay.",
+                        "#f0c040"),
+    "broken_cisterns": ("Broken Cisterns",
+                        "Water infrastructure hazard on this segment.",
+                        "#5eb8ff"),
+    "landslide":       ("Landslide",
+                        "Road partially blocked by debris. Use caution.",
+                        "#c97c30"),
+    "flooded":         ("Flooded Road",
+                        "Water on road surface. May be impassable.",
+                        "#1a9eba"),
+}
+
 # Node positions on the 840 × 520 canvas
 # (Approximates the rural Saint Catherine road geography)
-# =============================================================================
 NODE_POSITIONS = {
     "old_harbour":      ( 90, 285),
     "gutters":          (245, 205),
@@ -128,11 +112,9 @@ ROAD_W    = 4     # default road line width
 ROUTE_W   = 10    # route highlight width
 ADMIN_PWD = "admin123"   # Demo password – replace with proper auth in production
 
-# =============================================================================
 # Real GPS coordinates for each road node (Saint Catherine, Jamaica)
 # Used to project nodes onto the Google Maps Static tile.
 # If no API key is present the app falls back to self._node_positions above.
-# =============================================================================
 NODE_LATLNG = {
     "old_harbour":       (17.9463, -77.1117),
     "gutters":           (17.9812, -77.0623),
@@ -167,10 +149,8 @@ _MAP_DARK_STYLE = (
 )
 
 
-# =============================================================================
-# Mercator projection helpers
-# =============================================================================
 
+# Mercator projection helpers
 def _world_px(lat: float, lng: float, zoom: int):
     """
     Convert a (lat, lng) pair to world-pixel coordinates at a given zoom.
@@ -227,10 +207,7 @@ class PathFinderApp:
         self._refresh_data()
         self._draw_map()
 
-    # =========================================================================
     # WINDOW LAYOUT
-    # =========================================================================
-
     def _build_window(self):
         self.root.title("PathFinder – Jamaica Rural Roads")
         self.root.configure(bg=C["bg"])
@@ -342,12 +319,14 @@ class PathFinderApp:
         leg.pack_propagate(False)
 
         items = [
-            ("━━", C["paved"],    "Paved"),
-            ("━━", C["unpaved"],  "Unpaved"),
-            ("━━", C["closed"],   "Closed"),
-            ("━━", C["route"],    "Active Route"),
-            ("▲",  C["pot_icon"], "Deep Potholes"),
-            ("●",  C["cis_icon"], "Broken Cisterns"),
+            ("━━", C["paved"],     "Paved"),
+            ("━━", C["unpaved"],   "Unpaved"),
+            ("━━", C["closed"],    "Closed"),
+            ("━━", C["route"],     "Active Route"),
+            ("▲",  C["pot_icon"],  "Deep Potholes"),
+            ("●",  C["cis_icon"],  "Broken Cisterns"),
+            ("▼",  C["land_icon"], "Landslide"),
+            ("≈",  C["flood_icon"],"Flooded"),
         ]
         for sym, col, label in items:
             tk.Label(leg, text=sym, bg=C["header"], fg=col,
@@ -577,9 +556,7 @@ class PathFinderApp:
         )
         self._no_path_label.pack(anchor="w", padx=16)
 
-    # =========================================================================
     # DATA MANAGEMENT
-    # =========================================================================
 
     def _refresh_data(self):
         """Fetch the latest facts from Prolog and update the search dropdowns."""
@@ -618,10 +595,7 @@ class PathFinderApp:
             print(f"[map]  New node '{node}' auto-placed at ({x}, {row_y}) "
                   f"- add GPS coords to NODE_LATLNG for accurate positioning.")
 
-    # =========================================================================
     # MAP DRAWING
-    # =========================================================================
-
     def _draw_map(self):
         """
         Full map redraw sequence:
@@ -740,72 +714,118 @@ class PathFinderApp:
                 cx = start_x + i * 20
                 cy = my + 8
 
+                # Each icon gets a unique canvas tag so that ALL drawn layers
+                # (shadow, shape, symbol text) share the same hover binding —
+                # this prevents tooltip flickering when the mouse crosses layers.
+                ctag = f"cond_{src}_{dst}_{condition}_{i}"
+
                 if condition == "deep_potholes":
-                    iid = self._icon_pothole(cx, cy)
+                    self._icon_pothole(cx, cy, ctag)
                 elif condition == "broken_cisterns":
-                    iid = self._icon_cistern(cx, cy)
+                    self._icon_cistern(cx, cy, ctag)
+                elif condition == "landslide":
+                    self._icon_landslide(cx, cy, ctag)
+                elif condition == "flooded":
+                    self._icon_flooded(cx, cy, ctag)
                 else:
-                    iid = self._icon_generic(cx, cy)
+                    self._icon_generic(cx, cy, ctag)
 
-                tip_text = f"⚠  {format_condition(condition)}"
-                self._bind_tip(iid, tip_text)
-                self._icon_items[(src, dst, condition)] = iid
+                # Build tooltip from CONDITION_TIPS or fall back to plain name
+                tip_info  = CONDITION_TIPS.get(condition)
+                if tip_info:
+                    title, detail, tip_bg = tip_info
+                    tip_text = f"{title}\n{detail}"
+                else:
+                    tip_text = format_condition(condition)
+                    tip_bg   = "#ff8800"
 
-    def _icon_pothole(self, cx, cy):
-        """
-        Draw a yellow warning triangle for deep_potholes.
-        Matches the Waze hazard triangle icon.
-        """
-        s   = 9   # half-size of triangle
+                self._bind_tip_tag(ctag, tip_text, tip_bg)
+                self._icon_items[(src, dst, condition)] = ctag
+
+    def _icon_pothole(self, cx, cy, ctag):
+        """Yellow warning triangle  ▲  for deep_potholes."""
+        s   = 9
         pts = [cx, cy - s, cx - s, cy + s, cx + s, cy + s]
-        # Dark shadow for depth
         self.canvas.create_polygon(
             [cx, cy - s - 1, cx - s - 1, cy + s + 1, cx + s + 1, cy + s + 1],
-            fill="#0a1020", outline="", tags=("icon",),
+            fill="#0a1020", outline="", tags=("icon", ctag),
         )
-        iid = self.canvas.create_polygon(
+        self.canvas.create_polygon(
             pts, fill=C["pot_icon"], outline="#b09010", width=1,
-            tags=("icon",),
+            tags=("icon", ctag),
         )
         self.canvas.create_text(
             cx, cy + 2, text="!", fill="#1a1f2e",
-            font=("Helvetica", 7, "bold"), tags=("icon",),
+            font=("Helvetica", 7, "bold"), tags=("icon", ctag),
         )
-        return iid
 
-    def _icon_cistern(self, cx, cy):
+    def _icon_cistern(self, cx, cy, ctag):
+        """Blue circle  ●  for broken_cisterns."""
+        r = 8
+        self.canvas.create_oval(
+            cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1,
+            fill="#0a1020", outline="", tags=("icon", ctag),
+        )
+        self.canvas.create_oval(
+            cx - r, cy - r, cx + r, cy + r,
+            fill=C["cis_icon"], outline="#2070bb", width=1,
+            tags=("icon", ctag),
+        )
+        self.canvas.create_text(
+            cx, cy, text="~", fill="white",
+            font=("Helvetica", 9, "bold"), tags=("icon", ctag),
+        )
+
+    def _icon_landslide(self, cx, cy, ctag):
         """
-        Draw a blue circle for broken_cisterns (water hazard).
-        Matches the Waze water/hazard bubble icon.
+        Earthy-brown downward triangle  ▼  for landslide.
+        The inverted triangle suggests debris falling down a slope.
+        """
+        s   = 9
+        pts = [cx - s, cy - s, cx + s, cy - s, cx, cy + s]   # inverted triangle
+        self.canvas.create_polygon(
+            [cx - s - 1, cy - s - 1, cx + s + 1, cy - s - 1, cx, cy + s + 1],
+            fill="#0a1020", outline="", tags=("icon", ctag),
+        )
+        self.canvas.create_polygon(
+            pts, fill=C["land_icon"], outline="#7a4010", width=1,
+            tags=("icon", ctag),
+        )
+        self.canvas.create_text(
+            cx, cy - 1, text="!", fill="white",
+            font=("Helvetica", 7, "bold"), tags=("icon", ctag),
+        )
+
+    def _icon_flooded(self, cx, cy, ctag):
+        """
+        Teal rounded rectangle with wave symbol  ≈  for flooded roads.
         """
         r = 8
         self.canvas.create_oval(
             cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1,
-            fill="#0a1020", outline="", tags=("icon",),
+            fill="#0a1020", outline="", tags=("icon", ctag),
         )
-        iid = self.canvas.create_oval(
+        self.canvas.create_oval(
             cx - r, cy - r, cx + r, cy + r,
-            fill=C["cis_icon"], outline="#2070bb", width=1,
-            tags=("icon",),
+            fill=C["flood_icon"], outline="#0e6e88", width=1,
+            tags=("icon", ctag),
         )
         self.canvas.create_text(
             cx, cy, text="~", fill="white",
-            font=("Helvetica", 9, "bold"), tags=("icon",),
+            font=("Helvetica", 10, "bold"), tags=("icon", ctag),
         )
-        return iid
 
-    def _icon_generic(self, cx, cy):
-        """Draw a generic orange circle icon for other conditions."""
+    def _icon_generic(self, cx, cy, ctag):
+        """Orange circle with  !  for any other conditions."""
         r = 8
-        iid = self.canvas.create_oval(
+        self.canvas.create_oval(
             cx - r, cy - r, cx + r, cy + r,
-            fill="#ff8800", outline="#cc5500", width=1, tags=("icon",),
+            fill="#ff8800", outline="#cc5500", width=1, tags=("icon", ctag),
         )
         self.canvas.create_text(
             cx, cy, text="!", fill="white",
-            font=("Helvetica", 8, "bold"), tags=("icon",),
+            font=("Helvetica", 8, "bold"), tags=("icon", ctag),
         )
-        return iid
 
     # ── Nodes ─────────────────────────────────────────────────────────────────
 
@@ -851,49 +871,115 @@ class PathFinderApp:
                 tags=("lbl",),
             )
 
-        # Destination flag on active route
+        # ── Destination marker on active route ───────────────────────────────
         if self.active_path:
             dst_node = self.active_path[-1]
             if dst_node in self._node_positions:
                 dx, dy = self._node_positions[dst_node]
-                self.canvas.create_text(
-                    dx, dy - NODE_R - 12,
-                    text="🏁", font=("Helvetica", 16),
+
+                # 1. Outer pulsing glow ring (bright green, larger than node)
+                self.canvas.create_oval(
+                    dx - NODE_R - 9, dy - NODE_R - 9,
+                    dx + NODE_R + 9, dy + NODE_R + 9,
+                    outline="#2ecc71", width=3, fill="",
+                    tags=("node",),
+                )
+                # 2. Inner accent ring (white)
+                self.canvas.create_oval(
+                    dx - NODE_R - 4, dy - NODE_R - 4,
+                    dx + NODE_R + 4, dy + NODE_R + 4,
+                    outline="white", width=1, fill="",
                     tags=("node",),
                 )
 
-    # =========================================================================
-    # TOOLTIPS  (Waze hazard report popup behaviour)
-    # =========================================================================
+                # 3. Flagpole  – vertical line rising from node top
+                pole_top = dy - NODE_R - 30
+                self.canvas.create_line(
+                    dx, dy - NODE_R,
+                    dx, pole_top,
+                    fill="white", width=2, capstyle="round",
+                    tags=("node",),
+                )
 
-    def _bind_tip(self, item_id, text: str):
-        """Bind hover enter/leave events to a canvas item for tooltip display."""
-        self.canvas.tag_bind(item_id, "<Enter>",
-                             lambda e, t=text: self._show_tip(e, t))
-        self.canvas.tag_bind(item_id, "<Leave>",
+                # 4. Checkered flag panel (two rows × two columns)
+                fw, fh = 18, 14      # flag width / height
+                sq = fw // 2         # square size = 9 px
+                colours = ["#2ecc71", "#ffffff"]
+                for row in range(2):
+                    for col in range(2):
+                        c = colours[(row + col) % 2]
+                        self.canvas.create_rectangle(
+                            dx + col * sq,       pole_top + row * (fh // 2),
+                            dx + (col + 1) * sq, pole_top + (row + 1) * (fh // 2),
+                            fill=c, outline="", tags=("node",),
+                        )
+                # Flag border
+                self.canvas.create_rectangle(
+                    dx, pole_top,
+                    dx + fw, pole_top + fh,
+                    outline="#1a9eba", width=1, fill="",
+                    tags=("node",),
+                )
+
+                # 5. "FINISH" label below the node circle
+                self.canvas.create_text(
+                    dx, dy + NODE_R + 22,
+                    text="FINISH", fill="#2ecc71",
+                    font=("Helvetica", 7, "bold"),
+                    tags=("node",),
+                )
+
+    # ── Tooltips ──────────────────────────────────────────────────────────────
+
+    def _bind_tip_tag(self, canvas_tag: str, text: str, bg: str = "#f0c040"):
+        """
+        Bind hover enter/leave to a CANVAS TAG (not a single item id).
+        Because every layer of an icon shares the same tag, the tooltip stays
+        visible as the mouse moves across the shadow, shape, and text layers —
+        no more flickering when crossing sub-items.
+        """
+        self.canvas.tag_bind(canvas_tag, "<Enter>",
+                             lambda e, t=text, c=bg: self._show_tip(e, t, c))
+        self.canvas.tag_bind(canvas_tag, "<Leave>",
                              lambda e: self._hide_tip())
 
-    def _show_tip(self, event, text: str):
+    def _show_tip(self, event, text: str, bg: str = "#f0c040"):
         """
-        Display a small dark tooltip window near the mouse cursor.
-        Styled like Waze's yellow road-report popups.
+        Display a Waze-style tooltip popup near the cursor.
+
+        Parameters
+        ----------
+        text : one or two lines joined by \\n — first line is bold title,
+               second line (if present) is smaller detail text.
+        bg   : background hex colour — matches the icon that was hovered.
         """
         self._hide_tip()
 
         rx = self.canvas.winfo_rootx() + event.x + 16
-        ry = self.canvas.winfo_rooty() + event.y - 30
+        ry = self.canvas.winfo_rooty() + event.y - 40
 
         self._tooltip = tw = tk.Toplevel(self.root)
-        tw.wm_overrideredirect(True)   # No title bar or border
+        tw.wm_overrideredirect(True)
         tw.wm_geometry(f"+{rx}+{ry}")
-        tw.configure(bg=C["pot_icon"])
+        tw.configure(bg=bg)
 
+        lines = text.split("\n")
+        # Title line (bold)
         tk.Label(
-            tw, text=f"  {text}  ",
-            bg=C["pot_icon"], fg="#1a1f2e",
+            tw, text=f"  {lines[0]}  ",
+            bg=bg, fg="#1a1f2e",
             font=("Helvetica", 9, "bold"),
-            relief="flat", bd=2,
-        ).pack()
+            relief="flat",
+        ).pack(anchor="w")
+
+        # Detail line (smaller, if present)
+        if len(lines) > 1:
+            tk.Label(
+                tw, text=f"  {lines[1]}  ",
+                bg=bg, fg="#1a1f2e",
+                font=("Helvetica", 8),
+                relief="flat",
+            ).pack(anchor="w")
 
     def _hide_tip(self):
         """Destroy the active tooltip window if it exists."""
@@ -901,10 +987,7 @@ class PathFinderApp:
             self._tooltip.destroy()
             self._tooltip = None
 
-    # =========================================================================
     # EVENT HANDLERS
-    # =========================================================================
-
     def _on_src_changed(self, _event=None):
         """
         Called when the user picks a source node.
@@ -1127,10 +1210,7 @@ class PathFinderApp:
         self._no_path_label.configure(text="")
         self._draw_map()
 
-    # =========================================================================
     # ADMIN PANEL
-    # =========================================================================
-
     def _open_admin(self):
         """
         Show a password prompt then open the AdminPanel Toplevel.

@@ -4,20 +4,8 @@ bridge.py
 Manages the connection between Python and the SWI-Prolog engine via PySwip.
 
 All Prolog queries are funnelled through this single class so the rest of the
-application stays completely free of Prolog syntax.  Think of it as a clean
-API layer: the rest of Python only sees ordinary Python method calls and gets
-back plain Python lists and dicts.
+application stays completely free of Prolog syntax.  
 
-Design note
------------
-PySwip embeds SWI-Prolog inside the Python process.  `Prolog()` is a singleton
-— every call returns the same engine instance.  `prolog.consult(path)` loads
-(compiles) a .pl file into that engine exactly as SWI-Prolog's consult/1 does.
-`prolog.query(string)` yields one dict per solution; each dict maps Prolog
-variable names (capital letters) to their bound values (PySwip Atom objects or
-Python ints).
-
-Author: Group  |  UTech Jamaica – AI / Expert Systems  |  2026
 """
 
 import importlib
@@ -50,14 +38,10 @@ class PrologBridge:
             return pyswip_module.Prolog()
         except ModuleNotFoundError as exc:
             raise RuntimeError(
-                "Missing dependency 'pyswip'. Install it in this interpreter "
-                "with: pip install pyswip"
+                "Missing dependency 'pyswip'.  Install with:  pip install pyswip"
             ) from exc
 
-    # =========================================================================
     # LOADING THE KNOWLEDGE BASE
-    # =========================================================================
-
     def load(self, kb_path: str) -> bool:
         """
         Consult (load + compile) a Prolog .pl file into the engine.
@@ -76,10 +60,7 @@ class PrologBridge:
             print(f"[Bridge] Failed to load KB '{kb_path}': {exc}")
             return False
 
-    # =========================================================================
     # DATA ACCESS  –  Reading facts from Prolog
-    # =========================================================================
-
     def get_all_roads(self) -> list:
         """
         Query every road/7 fact from the knowledge base.
@@ -139,9 +120,7 @@ class PrologBridge:
             nodes.add(r["dst"])
         return sorted(nodes)
 
-    # =========================================================================
     # PATH QUERIES  –  Calling the search algorithms
-    # =========================================================================
     # Each public method maps to one Prolog predicate defined in aiproject.pl.
     # Path-only queries return a list[str] or None.
     # Cost queries return (list[str], int) or (None, None).
@@ -343,9 +322,7 @@ class PrologBridge:
             print(f"[Bridge] save_kb error: {exc}")
             return False
 
-    # =========================================================================
     # INTERNAL HELPERS
-    # =========================================================================
 
     def _path_query(self, predicate: str, start: str, goal: str):
         """

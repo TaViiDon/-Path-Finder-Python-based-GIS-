@@ -97,8 +97,7 @@ def main():
     # 3. Create root window and start the GUI
     root = tk.Tk()
 
-    # Request a dark title bar on Windows 10/11 (purely cosmetic, may not work
-    # on all Windows builds – silently ignored if unsupported)
+    # Allow transparency on Windows
     try:
         root.wm_attributes("-alpha", 1.0)
     except Exception:
