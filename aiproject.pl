@@ -123,7 +123,7 @@ dfs_helper(Current, Goal, Visited, Path) :-
     dfs_helper(Next, Goal, [Next|Visited], Path).
 
 %avoid roads with landslides
-dfs_noLandslides(Start, Goal, Path) :-
+dfs_no_landslides(Start, Goal, Path) :-
     dfs_noland(Start, Goal, [Start], RevPath),
     reverse(RevPath, Path).
 
@@ -136,7 +136,7 @@ dfs_noland(Current, Goal, Visited, Path) :-
 
 
 %avoid roads with floods
-dfs_noFloods(Start, Goal, Path) :-
+dfs_no_floods(Start, Goal, Path) :-
     dfs_noF(Start, Goal, [Start], RevPath),
     reverse(RevPath, Path).
 
@@ -148,7 +148,7 @@ dfs_noF(Current, Goal, Visited, Path) :-
     dfs_noF(Next, Goal, [Next|Visited], Path). 
 
 %avoid roads with broken cisterns
-dfs_noBrokencisterns(Start, Goal, Path) :-
+dfs_no_cisterns(Start, Goal, Path) :-
     dfs_nocis(Start, Goal, [Start], RevPath),
     reverse(RevPath, Path).
 
@@ -159,8 +159,8 @@ dfs_nocis(Current, Goal, Visited, Path) :-
     \+ member(Next, Visited),
     dfs_nocis(Next, Goal, [Next|Visited], Path).
 
-%avoid roads with broken cisterns
-dfs_nopotholes(Start, Goal, Path) :-
+%avoid roads with deep potholes
+dfs_no_potholes(Start, Goal, Path) :-
     dfs_pot(Start, Goal, [Start], RevPath),
     reverse(RevPath, Path).
 

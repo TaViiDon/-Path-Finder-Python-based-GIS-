@@ -155,6 +155,20 @@ class PrologBridge:
         """
         return self._path_query("dfs_no_potholes", start, goal)
 
+    def query_dfs_no_landslides(self, start: str, goal: str):
+        """
+        DFS – avoids road segments that have a landslide condition.
+        Calls the predicate dfs_no_landslides/3 from aiproject.pl.
+        """
+        return self._path_query("dfs_no_landslides", start, goal)
+
+    def query_dfs_no_floods(self, start: str, goal: str):
+        """
+        DFS – avoids road segments that have a flooded condition.
+        Calls the predicate dfs_no_floods/3 from aiproject.pl.
+        """
+        return self._path_query("dfs_no_floods", start, goal)
+
     def query_dijkstra_distance(self, start: str, goal: str):
         """
         Dijkstra – minimises total distance (km).

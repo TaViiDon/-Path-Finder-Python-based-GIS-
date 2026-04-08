@@ -212,6 +212,8 @@ ALGORITHM_MAP = {
     "Depth-First Search (DFS)":       ("dfs",               False),
     "Avoid Broken Cisterns (DFS)":    ("dfs_no_cisterns",   False),
     "Avoid Deep Potholes   (DFS)":    ("dfs_no_potholes",   False),
+    "Avoid Landslides      (DFS)":    ("dfs_no_landslides", False),
+    "Avoid Floods          (DFS)":    ("dfs_no_floods",     False),
 }
 
 ALGORITHM_LABELS = list(ALGORITHM_MAP.keys())

@@ -102,6 +102,8 @@ The application window will open showing the Jamaica road network map.
    - **Depth-First Search (DFS)** — explores deep paths first
    - **Avoid Broken Cisterns (DFS)** — skips roads with broken cisterns
    - **Avoid Deep Potholes (DFS)** — skips roads with deep potholes
+   - **Avoid Landslides (DFS)** — skips roads with landslide conditions
+   - **Avoid Floods (DFS)** — skips roads with flooded conditions
 4. Click **Find Route**
 5. Route options appear as cards on the right — click a card to switch between routes
 
