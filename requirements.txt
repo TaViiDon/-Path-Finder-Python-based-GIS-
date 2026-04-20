@@ -2,3 +2,4 @@ pyswip
 requests
 Pillow
 python-dotenv
+tkintermapview

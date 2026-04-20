@@ -424,6 +424,11 @@ class AdminPanel:
                 self._add_msg,
                 f"✔  Road '{display_name(src)} → {display_name(dst)}' added.", "success",
             )
+            # Clear entry fields so the form is ready for the next entry
+            v["src"].set("")
+            v["dst"].set("")
+            v["dist"].set("")
+            v["time"].set("")
             self._refresh_view()
             self._notify_map()
         else:
@@ -445,6 +450,9 @@ class AdminPanel:
                 f"✔  {display_name(src)} → {display_name(dst)} set to {status.upper()}.",
                 "success",
             )
+            # Clear entry fields after a successful update
+            self._upd_vars["src"].set("")
+            self._upd_vars["dst"].set("")
             self._refresh_view()
             self._notify_map()
         else:
@@ -467,6 +475,9 @@ class AdminPanel:
                 f"{display_name(src)} ↔ {display_name(dst)}.",
                 "success",
             )
+            # Clear entry fields after success
+            self._cond_vars["src"].set("")
+            self._cond_vars["dst"].set("")
             self._refresh_view()
             self._notify_map()
         else:
@@ -484,6 +495,9 @@ class AdminPanel:
 
         if self.bridge.remove_condition(src, dst, condition):
             self._msg(self._cond_msg, "✔  Condition removed.", "success")
+            # Clear entry fields after success
+            self._cond_vars["src"].set("")
+            self._cond_vars["dst"].set("")
             self._refresh_view()
             self._notify_map()
         else:

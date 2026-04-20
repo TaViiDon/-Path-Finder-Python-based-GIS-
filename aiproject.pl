@@ -15,6 +15,7 @@ road(old_harbour,calbeck_junction, 7, 10, paved, open, two_way).
 road(calbeck_junction,bushy_park, 8, 12, unpaved, open, two_way).
 road(montego_bay,falmouth, 32, 45, paved, open, two_way).
 road(gutters,bushy_park, 5, 5, unpaved, open, two_way).
+road(new_york_city,new_jersey, 200, 12, paved, open, two_way).
 
 %special conditions
 %special_conditions(source, destination, condition).
@@ -22,6 +23,12 @@ special_conditions(old_harbour, gutters, deep_potholes).
 special_conditions(old_harbour, gutters, broken_cisterns).
 special_conditions(gutters, bushy_park, flooded).
 special_conditions(gutters, spring_villiage, landslide).
+
+
+%road(source, destination, distance, time, type, status, ways)
+
+%special conditions
+%special_conditions(source, destination, condition).
 
 
 %road(source, destination, distance, time, type, status, ways)
